@@ -2,13 +2,23 @@
 <html lang="pl">
 <head>
     <meta charset="UTF-8">
-    <title>Nagrywanie Audio</title>
+    <title>Nagrywanie audio</title>
 </head>
 <body>
-    <h1>Nagraj audio</h1>
+    <h1>Dzień dobry, cześć i czołem</h1>
+
+    <h2>️Nagraj dźwięk z mikrofonu</h2>
     <button id="startBtn">Start</button>
     <button id="stopBtn" disabled>Stop</button>
     <audio id="audioPlayer" controls></audio>
+
+    <hr>
+
+    <h2>Prześlij gotowy plik audio</h2>
+    <form action="/upload_file" method="post" enctype="multipart/form-data">
+        <input type="file" name="file" accept="audio/*">
+        <button type="submit">Wyślij plik</button>
+    </form>
 
     <script>
         let mediaRecorder;
@@ -33,13 +43,11 @@
                 const formData = new FormData();
                 formData.append('audio', audioBlob, 'nagranie.webm');
 
-                // Wyślij do serwera
                 await fetch('/upload_audio', {
                     method: 'POST',
                     body: formData
                 });
 
-                // Odtwarzanie lokalne
                 const audioUrl = URL.createObjectURL(audioBlob);
                 audioPlayer.src = audioUrl;
             };
@@ -56,4 +64,3 @@
     </script>
 </body>
 </html>
-
