@@ -1,0 +1,7 @@
+{
+  "name": "ionic-apem-projekt",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react-vite"
+}

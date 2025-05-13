@@ -1,0 +1,22 @@
+.audioPlayer{
+    margin: auto;
+    float: left;
+    width: 100%;
+    padding: 5%;
+}
+
+.player{
+    margin: auto;
+    width: fit-content;
+}
+
+.controlButtons{
+    margin: auto;
+    margin-top: 2vmax;
+    width: fit-content;
+}
+
+.controlButton{
+    float: left;
+    margin: 0pt 3cqmin;
+}

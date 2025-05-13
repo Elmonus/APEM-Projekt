@@ -43,7 +43,7 @@
                 const formData = new FormData();
                 formData.append('audio', audioBlob, 'nagranie.webm');
 
-                await fetch('/upload_audio', {
+                await fetch('./upload_audio', {
                     method: 'POST',
                     body: formData
                 });
