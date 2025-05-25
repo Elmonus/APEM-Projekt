@@ -213,7 +213,7 @@ def health():
     return {'status': 'ok'}, 200
 
 if __name__ == '__main__':
-    # Upewnij się, że pydub może znaleźć ffmpeg
+    # Pydub może znaleźć ffmpeg
     # Ustawić ścieżkę do ffmpeg jeśli nie jest w PATH
     # AudioSegment.converter = "C:/path/to/ffmpeg.exe"
     
