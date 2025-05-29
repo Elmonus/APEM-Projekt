@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audiowerter - Nagrywanie, przycinanie i konwersja</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .recorder-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        audio {
+            width: 100%;
+            margin: 20px 0;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 100px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 2rem;
+            color: #667eea;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        /* Editor audio */
+        .audio-editor {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .waveform-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        #waveform {
+            width: 100%;
+            height: 100%;
+        }
+
+        .trim-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .trim-slider {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .slider-track {
+            width: 100%;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .slider-range {
+            position: absolute;
+            height: 100%;
+            background: #667eea;
+            opacity: 0.3;
+            border-radius: 5px;
+        }
+
+        .slider-handle {
+            position: absolute;
+            width: 20px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 5px;
+            cursor: ew-resize;
+            top: 0;
+            transition: transform 0.1s ease;
+        }
+
+        .slider-handle:hover {
+            transform: scaleX(1.2);
+            background: #764ba2;
+        }
+
+        .slider-handle.start {
+            left: 0;
+        }
+
+        .slider-handle.end {
+            right: 0;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            color: #2e7d32;
+            text-align: center;
+        }
+
+        .result a {
+            color: #1976d2;
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .result a:hover {
+            text-decoration: underline;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 2px;
+            background: #ff6b6b;
+            pointer-events: none;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .zoom-btn {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: #1976d2;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Audiowerter</h1>
+
+        <!-- Upload pliku -->
+        <div class="section">
+            <h2>Załaduj plik audio</h2>
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <label for="audioFile" class="file-input-label">
+                        Wybierz plik audio
+                    </label>
+                    <input type="file" id="audioFile" accept=".mp3,.wav,.flac,.webm,.ogg" required>
+                    <div class="file-name" id="fileName">Nie wybrano pliku</div>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                    Wczytaj i edytuj plik
+                </button>
+            </form>
+        </div>
+
+        <!-- Nagrywanie -->
+        <div class="section">
+            <h2>Nagraj własne audio</h2>
+            
+            <div class="timer" id="timer">00:00</div>
+            
+            <canvas id="visualizer" class="visualizer"></canvas>
+            
+            <div class="recorder-controls">
+                <button id="startBtn" class="btn-primary">
+                    Start
+                </button>
+                <button id="pauseBtn" class="btn-secondary" disabled>
+                    Pauza
+                </button>
+                <button id="stopBtn" class="btn-danger" disabled>
+                    Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Edytor audio -->
+        <div class="audio-editor" id="audioEditor">
+            <h2>Edytor audio</h2>
+            
+            <div class="instructions">
+                <h3>Instrukcja:</h3>
+                <ul>
+                    <li>Przeciągnij uchwyty na suwaku, aby zaznaczyć fragment do przycięcia</li>
+                    <li>Kliknij "Odtwórz zaznaczenie" aby odsłuchać wybrany fragment</li>
+                    <li>Użyj przycisków zoom, aby dokładniej ustawić punkty cięcia</li>
+                    <li>Kliknij "Przytnij i zapisz" gdy będziesz zadowolony z wyboru</li>
+                </ul>
+            </div>
+
+            <div class="waveform-container">
+                <canvas id="waveform"></canvas>
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <div class="zoom-controls">
+                <button class="btn-secondary zoom-btn" id="zoomOut">-</button>
+                <span>Zoom: <span id="zoomLevel">1.0x</span></span>
+                <button class="btn-secondary zoom-btn" id="zoomIn">+</button>
+                <button class="btn-secondary zoom-btn" id="zoomReset">Reset</button>
+            </div>
+
+            <div class="trim-controls">
+                <div class="trim-slider">
+                    <div class="slider-track" id="sliderTrack">
+                        <div class="slider-range" id="sliderRange"></div>
+                        <div class="slider-handle start" id="startHandle"></div>
+                        <div class="slider-handle end" id="endHandle"></div>
+                    </div>
+                    <div class="time-display">
+                        <span>Start: <span id="startTime">0:00</span></span>
+                        <span>Koniec: <span id="endTime">0:00</span></span>
+                        <span>Długość: <span id="duration">0:00</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="playback-controls">
+                <button class="btn-secondary" id="playOriginal">Odtwórz całość</button>
+                <button class="btn-success" id="playSelection">Odtwórz zaznaczenie</button>
+                <button class="btn-danger" id="stopPlayback">Stop</button>
+            </div>
+
+            <div class="trim-controls">
+                <div style="flex: 1;">
+                    <label for="trimStart">Start (sekundy):</label>
+                    <input type="number" id="trimStart" min="0" step="0.1" value="0">
+                </div>
+                <div style="flex: 1;">
+                    <label for="trimEnd">Koniec (sekundy):</label>
+                    <input type="number" id="trimEnd" min="0" step="0.1">
+                </div>
+                <button class="btn-secondary" id="applyManualTrim">Zastosuj</button>
+            </div>
+
+            <form id="exportForm">
+                <label for="exportFormat">Format docelowy:</label>
+                <select id="exportFormat" required>
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="flac">FLAC</option>
+                    <option value="ogg">OGG</option>
+                </select>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                    Przytnij i zapisz
+                </button>
+            </form>
+            
+            <div id="exportResult"></div>
+        </div>
+    </div>
+
+    <script>
+        // Zmienne globalne
+        let currentAudioBuffer = null;
+        let currentBlob = null;
+        let audioContext = null;
+        let sourceNode = null;
+        let trimStart = 0;
+        let trimEnd = 0;
+        let zoom = 1;
+        let isPlaying = false;
+
+        // Upload pliku
+        const uploadForm = document.getElementById('uploadForm');
+        const audioFileInput = document.getElementById('audioFile');
+        const fileNameDisplay = document.getElementById('fileName');
+        const audioEditor = document.getElementById('audioEditor');
+
+        audioFileInput.addEventListener('change', (e) => {
+            const fileName = e.target.files[0]?.name || 'Nie wybrano pliku';
+            fileNameDisplay.textContent = fileName;
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const file = audioFileInput.files[0];
+            if (!file) {
+                alert('Wybierz plik!');
+                return;
+            }
+
+            await loadAudioFile(file);
+        });
+
+        async function loadAudioFile(file) {
+            try {
+                // Inicjalizacja Audio Context
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+
+                // Wczytaj plik
+                const arrayBuffer = await file.arrayBuffer();
+                currentAudioBuffer = await audioContext.decodeAudioData(arrayBuffer);
+                currentBlob = file;
+
+                // Ustaw wartości początkowe
+                trimStart = 0;
+                trimEnd = currentAudioBuffer.duration;
+                zoom = 1;
+
+                // Pokaż edytor
+                audioEditor.style.display = 'block';
+                
+                // Narysuj waveform
+                drawWaveform();
+                
+                // Ustaw suwaki
+                updateSliders();
+                
+                // Ustaw wartości w polach
+                document.getElementById('trimEnd').value = trimEnd.toFixed(1);
+                document.getElementById('trimEnd').max = trimEnd.toFixed(1);
+                document.getElementById('trimStart').max = trimEnd.toFixed(1);
+
+                // Przewiń do edytora
+                audioEditor.scrollIntoView({ behavior: 'smooth' });
+            } catch (error) {
+                alert('Błąd wczytywania pliku: ' + error.message);
+            }
+        }
+
+        // Rysowanie waveform
+        function drawWaveform() {
+            const canvas = document.getElementById('waveform');
+            const ctx = canvas.getContext('2d');
+            
+            // Ustaw rozmiar canvas
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            
+            // Czyść canvas
+            ctx.fillStyle = '#f0f0f0';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            if (!currentAudioBuffer) return;
+            
+            // Pobierz dane audio
+            const channelData = currentAudioBuffer.getChannelData(0);
+            const samples = Math.floor(channelData.length / zoom);
+            const blockSize = Math.floor(samples / canvas.width);
+            const blocks = [];
+            
+            // Przetwórz dane
+            for (let i = 0; i < canvas.width; i++) {
+                let sum = 0;
+                let max = 0;
+                for (let j = 0; j < blockSize; j++) {
+                    const sample = channelData[i * blockSize + j] || 0;
+                    sum += Math.abs(sample);
+                    max = Math.max(max, Math.abs(sample));
+                }
+                blocks.push(max);
+            }
+            
+            // Narysuj waveform
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 1;
+            
+            const middle = canvas.height / 2;
+            ctx.beginPath();
+            
+            for (let i = 0; i < blocks.length; i++) {
+                const x = i;
+                const height = blocks[i] * middle * 0.9;
+                
+                ctx.moveTo(x, middle - height);
+                ctx.lineTo(x, middle + height);
+            }
+            
+            ctx.stroke();
+            
+            // Zaznacz obszar przycięcia
+            const startX = (trimStart / currentAudioBuffer.duration) * canvas.width;
+            const endX = (trimEnd / currentAudioBuffer.duration) * canvas.width;
+            
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.2)';
+            ctx.fillRect(startX, 0, endX - startX, canvas.height);
+            
+            // Linie graniczne
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startX, 0);
+            ctx.lineTo(startX, canvas.height);
+            ctx.moveTo(endX, 0);
+            ctx.lineTo(endX, canvas.height);
+            ctx.stroke();
+        }
+
+        // Obsługa suwaków
+        const startHandle = document.getElementById('startHandle');
+        const endHandle = document.getElementById('endHandle');
+        const sliderTrack = document.getElementById('sliderTrack');
+        const sliderRange = document.getElementById('sliderRange');
+
+        let isDragging = false;
+        let currentHandle = null;
+
+        function updateSliders() {
+            if (!currentAudioBuffer) return;
+            
+            const startPercent = (trimStart / currentAudioBuffer.duration) * 100;
+            const endPercent = (trimEnd / currentAudioBuffer.duration) * 100;
+            
+            startHandle.style.left = startPercent + '%';
+            endHandle.style.left = endPercent + '%';
+            
+            sliderRange.style.left = startPercent + '%';
+            sliderRange.style.width = (endPercent - startPercent) + '%';
+            
+            // Aktualizuj wyświetlane czasy
+            document.getElementById('startTime').textContent = formatTime(trimStart);
+            document.getElementById('endTime').textContent = formatTime(trimEnd);
+            document.getElementById('duration').textContent = formatTime(trimEnd - trimStart);
+        }
+
+        function handleMouseDown(e, handle) {
+            isDragging = true;
+            currentHandle = handle;
+            e.preventDefault();
+        }
+
+        function handleMouseMove(e) {
+            if (!isDragging || !currentHandle || !currentAudioBuffer) return;
+            
+            const rect = sliderTrack.getBoundingClientRect();
+            const percent = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+            const time = (percent / 100) * currentAudioBuffer.duration;
+            
+            if (currentHandle === startHandle) {
+                trimStart = Math.min(time, trimEnd - 0.1);
+                document.getElementById('trimStart').value = trimStart.toFixed(1);
+            } else {
+                trimEnd = Math.max(time, trimStart + 0.1);
+                document.getElementById('trimEnd').value = trimEnd.toFixed(1);
+            }
+            
+            updateSliders();
+            drawWaveform();
+        }
+
+        function handleMouseUp() {
+            isDragging = false;
+            currentHandle = null;
+        }
+
+        startHandle.addEventListener('mousedown', (e) => handleMouseDown(e, startHandle));
+        endHandle.addEventListener('mousedown', (e) => handleMouseDown(e, endHandle));
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+
+        // Obsługa manualnego wprowadzania czasu
+        document.getElementById('trimStart').addEventListener('input', (e) => {
+            trimStart = Math.max(0, Math.min(parseFloat(e.target.value), trimEnd - 0.1));
+            updateSliders();
+            drawWaveform();
+        });
+
+        document.getElementById('trimEnd').addEventListener('input', (e) => {
+            trimEnd = Math.min(currentAudioBuffer.duration, Math.max(parseFloat(e.target.value), trimStart + 0.1));
+            updateSliders();
+            drawWaveform();
+        });
+
+        document.getElementById('applyManualTrim').addEventListener('click', () => {
+            updateSliders();
+            drawWaveform();
+        });
+
+        // Zoom
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            zoom = Math.min(zoom * 1.5, 10);
+            document.getElementById('zoomLevel').textContent = zoom.toFixed(1) + 'x';
+            drawWaveform();
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            zoom = Math.max(zoom / 1.5, 1);
+            document.getElementById('zoomLevel').textContent = zoom.toFixed(1) + 'x';
+            drawWaveform();
+        });
+
+        document.getElementById('zoomReset').addEventListener('click', () => {
+            zoom = 1;
+            document.getElementById('zoomLevel').textContent = '1.0x';
+            drawWaveform();
+        });
+
+        // Odtwarzanie
+        document.getElementById('playOriginal').addEventListener('click', () => playAudio(0, currentAudioBuffer.duration));
+        document.getElementById('playSelection').addEventListener('click', () => playAudio(trimStart, trimEnd));
+        document.getElementById('stopPlayback').addEventListener('click', stopAudio);
+
+        function playAudio(start, end) {
+            if (!currentAudioBuffer || isPlaying) return;
+            
+            stopAudio();
+            
+            sourceNode = audioContext.createBufferSource();
+            sourceNode.buffer = currentAudioBuffer;
+            sourceNode.connect(audioContext.destination);
+            
+            const duration = end - start;
+            sourceNode.start(0, start, duration);
+            isPlaying = true;
+            
+            // Animacja progress bar
+            const progressBar = document.getElementById('progressBar');
+            const startTime = Date.now();
+            
+            function updateProgress() {
+                if (!isPlaying) return;
+                
+                const elapsed = (Date.now() - startTime) / 1000;
+                const progress = Math.min(elapsed / duration, 1);
+                const position = ((start + elapsed) / currentAudioBuffer.duration) * 100;
+                
+                progressBar.style.left = position + '%';
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateProgress);
+                } else {
+                    isPlaying = false;
+                    progressBar.style.left = '-2px';
+                }
+            }
+            
+            updateProgress();
+            
+            sourceNode.onended = () => {
+                isPlaying = false;
+                progressBar.style.left = '-2px';
+            };
+        }
+
+        function stopAudio() {
+            if (sourceNode) {
+                sourceNode.stop();
+                sourceNode = null;
+            }
+            isPlaying = false;
+            document.getElementById('progressBar').style.left = '-2px';
+        }
+
+        // Nagrywanie
+        let mediaRecorder;
+        let audioChunks = [];
+        let recordedBlob = null;
+        let startTime;
+        let timerInterval;
+        let recordingAnalyser;
+        let recordingDataArray;
+        let animationId;
+
+        const startBtn = document.getElementById('startBtn');
+        const pauseBtn = document.getElementById('pauseBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const timer = document.getElementById('timer');
+        const recordingCanvas = document.getElementById('visualizer');
+        const recordingCtx = recordingCanvas.getContext('2d');
+
+        // Ustawienie rozmiaru canvas
+        recordingCanvas.width = recordingCanvas.offsetWidth;
+        recordingCanvas.height = recordingCanvas.offsetHeight;
+
+        function updateTimer() {
+            const elapsed = Date.now() - startTime;
+            const minutes = Math.floor(elapsed / 60000);
+            const seconds = Math.floor((elapsed % 60000) / 1000);
+            timer.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        }
+
+        function drawRecordingVisualizer() {
+            animationId = requestAnimationFrame(drawRecordingVisualizer);
+
+            recordingAnalyser.getByteTimeDomainData(recordingDataArray);
+
+            recordingCtx.fillStyle = '#f0f0f0';
+            recordingCtx.fillRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+
+            recordingCtx.lineWidth = 2;
+            recordingCtx.strokeStyle = '#667eea';
+            recordingCtx.beginPath();
+
+            const sliceWidth = recordingCanvas.width / recordingDataArray.length;
+            let x = 0;
+
+            for (let i = 0; i < recordingDataArray.length; i++) {
+                const v = recordingDataArray[i] / 128.0;
+                const y = v * recordingCanvas.height / 2;
+
+                if (i === 0) {
+                    recordingCtx.moveTo(x, y);
+                } else {
+                    recordingCtx.lineTo(x, y);
+                }
+
+                x += sliceWidth;
+            }
+
+            recordingCtx.lineTo(recordingCanvas.width, recordingCanvas.height / 2);
+            recordingCtx.stroke();
+        }
+
+        startBtn.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                
+                // Audio context dla wizualizacji
+                if (!audioContext) {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                const source = audioContext.createMediaStreamSource(stream);
+                recordingAnalyser = audioContext.createAnalyser();
+                recordingAnalyser.fftSize = 2048;
+                const bufferLength = recordingAnalyser.frequencyBinCount;
+                recordingDataArray = new Uint8Array(bufferLength);
+                source.connect(recordingAnalyser);
+
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = event => {
+                    audioChunks.push(event.data);
+                };
+
+                mediaRecorder.onstop = async () => {
+                    recordedBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    
+                    // Załaduj nagranie do edytora
+                    await loadAudioFile(recordedBlob);
+                    
+                    // Zatrzymanie wizualizacji
+                    cancelAnimationFrame(animationId);
+                    recordingCtx.fillStyle = '#f0f0f0';
+                    recordingCtx.fillRect(0, 0, recordingCanvas.width, recordingCanvas.height);
+                };
+
+                mediaRecorder.start();
+                startTime = Date.now();
+                timerInterval = setInterval(updateTimer, 100);
+                
+                startBtn.disabled = true;
+                startBtn.classList.add('recording');
+                pauseBtn.disabled = false;
+                stopBtn.disabled = false;
+
+                drawRecordingVisualizer();
+            } catch (error) {
+                alert('Nie można uzyskać dostępu do mikrofonu: ' + error.message);
+            }
+        };
+
+        pauseBtn.onclick = () => {
+            if (mediaRecorder.state === 'recording') {
+                mediaRecorder.pause();
+                pauseBtn.textContent = 'Wznów';
+                clearInterval(timerInterval);
+            } else {
+                mediaRecorder.resume();
+                pauseBtn.textContent = 'Pauza';
+                timerInterval = setInterval(updateTimer, 100);
+            }
+        };
+
+        stopBtn.onclick = () => {
+            mediaRecorder.stop();
+            mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            
+            clearInterval(timerInterval);
+            startBtn.disabled = false;
+            startBtn.classList.remove('recording');
+            pauseBtn.disabled = true;
+            stopBtn.disabled = true;
+            pauseBtn.textContent = 'Pauza';
+        };
+
+        // Eksport z przycięciem
+        const exportForm = document.getElementById('exportForm');
+        const exportResult = document.getElementById('exportResult');
+
+        exportForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!currentAudioBuffer) {
+                alert('Najpierw wczytaj lub nagraj audio');
+                return;
+            }
+
+            const format = document.getElementById('exportFormat').value;
+            exportResult.innerHTML = '<div class="loading"></div> Przetwarzanie i konwertowanie...';
+
+            try {
+                // Utwórz przycięty AudioBuffer
+                const sampleRate = currentAudioBuffer.sampleRate;
+                const startSample = Math.floor(trimStart * sampleRate);
+                const endSample = Math.floor(trimEnd * sampleRate);
+                const duration = endSample - startSample;
+                
+                const trimmedBuffer = audioContext.createBuffer(
+                    currentAudioBuffer.numberOfChannels,
+                    duration,
+                    sampleRate
+                );
+                
+                for (let channel = 0; channel < currentAudioBuffer.numberOfChannels; channel++) {
+                    const sourceData = currentAudioBuffer.getChannelData(channel);
+                    const targetData = trimmedBuffer.getChannelData(channel);
+                    
+                    for (let i = 0; i < duration; i++) {
+                        targetData[i] = sourceData[startSample + i];
+                    }
+                }
+                
+                // Konwertuj AudioBuffer do Blob
+                const wavBlob = await audioBufferToWav(trimmedBuffer);
+                
+                // Wyślij do serwera do konwersji
+                const formData = new FormData();
+                formData.append('audio', wavBlob, 'trimmed.wav');
+                formData.append('format', format);
+                formData.append('trim_start', trimStart);
+                formData.append('trim_end', trimEnd);
+
+                const response = await fetch('/convert', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (response.ok) {
+                    const blob = await response.blob();
+                    const url = URL.createObjectURL(blob);
+                    const filename = `audio_trimmed.${format}`;
+                    
+                    exportResult.innerHTML = `
+                        <div class="result">
+                            Plik przycięty i skonwertowany!
+                            <a href="${url}" download="${filename}">Pobierz plik</a>
+                        </div>
+                    `;
+                } else {
+                    exportResult.innerHTML = '<div class="result" style="background: #ffebee; color: #c62828;">Błąd konwersji</div>';
+                }
+            } catch (error) {
+                exportResult.innerHTML = '<div class="result" style="background: #ffebee; color: #c62828;">Błąd: ' + error.message + '</div>';
+            }
+        });
+
+        // Konwersja AudioBuffer do WAV
+        function audioBufferToWav(buffer) {
+            const length = buffer.length * buffer.numberOfChannels * 2 + 44;
+            const arrayBuffer = new ArrayBuffer(length);
+            const view = new DataView(arrayBuffer);
+            const channels = [];
+            let offset = 0;
+            let pos = 0;
+
+            // twórz WAVE header
+            setUint32(0x46464952);                         // "RIFF"
+            setUint32(length - 8);                         // file length - 8
+            setUint32(0x45564157);                         // "WAVE"
+
+            setUint32(0x20746d66);                         // "fmt " chunk
+            setUint32(16);                                 // length = 16
+            setUint16(1);                                   // PCM (uncompressed)
+            setUint16(buffer.numberOfChannels);
+            setUint32(buffer.sampleRate);
+            setUint32(buffer.sampleRate * 2 * buffer.numberOfChannels); // avg. bytes/sec
+            setUint16(buffer.numberOfChannels * 2);        // block-align
+            setUint16(16);                                 // 16-bit (hardcoded in this demo)
+
+            setUint32(0x61746164);                         // "data" - chunk
+            setUint32(length - pos - 8);                   // chunk length
+
+            // write interleaved data
+            for (let i = 0; i < buffer.numberOfChannels; i++)
+                channels.push(buffer.getChannelData(i));
+
+            while (pos < length) {
+                for (let i = 0; i < buffer.numberOfChannels; i++) {
+                    let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+                    sample = (sample < 0 ? sample * 0x8000 : sample * 0x7FFF) | 0; // skaluj 16-bit int
+                    view.setInt16(pos, sample, true);          // napisz 16-bit sample
+                    pos += 2;
+                }
+                offset++; // kolejny source sample
+            }
+
+            return new Blob([arrayBuffer], { type: 'audio/wav' });
+
+            function setUint16(data) {
+                view.setUint16(pos, data, true);
+                pos += 2;
+            }
+
+            function setUint32(data) {
+                view.setUint32(pos, data, true);
+                pos += 4;
+            }
+        }
+
+        // Formatowanie czasu
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            const ms = Math.floor((seconds % 1) * 10);
+            return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
+        }
+
+        // Obsługa zmiany rozmiaru okna
+        window.addEventListener('resize', () => {
+            if (currentAudioBuffer) {
+                drawWaveform();
+            }
+        });
+    </script>
+</body>
+</html>

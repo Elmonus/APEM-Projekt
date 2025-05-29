@@ -1,0 +1,65 @@
+{
+  "name": "audiowerter-python",
+  "version": "1.0.0",
+  "description": "Aplikacja Electron z Python backend do konwersji audio",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "NODE_ENV=development electron .",
+    "build-win": "electron-builder --win",
+    "build-mac": "electron-builder --mac",
+    "build-linux": "electron-builder --linux",
+    "dist": "electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": ["audio", "converter", "electron", "python", "flask"],
+  "author": "Your Name",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^28.0.0",
+    "electron-builder": "^24.9.1"
+  },
+  "dependencies": {
+    "axios": "^1.6.2"
+  },
+  "build": {
+    "appId": "com.yourcompany.audiowerter",
+    "productName": "Audiowerter",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "app/**/*",
+      "!app/__pycache__",
+      "!app/*.pyc",
+      "!app/uploads",
+      "node_modules/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "app",
+        "to": "app",
+        "filter": ["**/*", "!__pycache__", "!*.pyc", "!uploads"]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.music",
+      "icon": "build/icon.icns"
+    },
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "linux": {
+      "target": ["AppImage", "deb"],
+      "category": "Audio",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

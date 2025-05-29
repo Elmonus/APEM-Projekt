@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'">
+    <title>Audiowerter - Nagrywanie, przycinanie i konwersja</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+        }
+
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-input-label {
+            display: block;
+            padding: 12px 20px;
+            background: #667eea;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .file-input-label:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .file-name {
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            margin: 10px 0;
+            background: white;
+        }
+
+        button {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 5px;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e0e0e0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #d0d0d0;
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+        }
+
+        .btn-success {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #38a169;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .recorder-controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+        }
+
+        .visualizer {
+            width: 100%;
+            height: 100px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 2rem;
+            color: #667eea;
+            font-weight: 600;
+            margin: 10px 0;
+        }
+
+        .audio-editor {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .waveform-container {
+            position: relative;
+            width: 100%;
+            height: 200px;
+            background: #f0f0f0;
+            border-radius: 8px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        #waveform {
+            width: 100%;
+            height: 100%;
+        }
+
+        .trim-controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin: 20px 0;
+            flex-wrap: wrap;
+        }
+
+        .trim-slider {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .slider-track {
+            width: 100%;
+            height: 40px;
+            background: #e0e0e0;
+            border-radius: 5px;
+            position: relative;
+            margin: 10px 0;
+        }
+
+        .slider-range {
+            position: absolute;
+            height: 100%;
+            background: #667eea;
+            opacity: 0.3;
+            border-radius: 5px;
+        }
+
+        .slider-handle {
+            position: absolute;
+            width: 20px;
+            height: 40px;
+            background: #667eea;
+            border-radius: 5px;
+            cursor: ew-resize;
+            top: 0;
+            transition: transform 0.1s ease;
+        }
+
+        .slider-handle:hover {
+            transform: scaleX(1.2);
+            background: #764ba2;
+        }
+
+        .slider-handle.start {
+            left: 0;
+        }
+
+        .slider-handle.end {
+            right: 0;
+        }
+
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 0.9rem;
+            color: #666;
+        }
+
+        .playback-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin: 20px 0;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e8f5e9;
+            border-radius: 8px;
+            color: #2e7d32;
+            text-align: center;
+        }
+
+        .result.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+
+        .recording {
+            animation: pulse 1.5s infinite;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-left: 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 2px;
+            background: #ff6b6b;
+            pointer-events: none;
+        }
+
+        .zoom-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin: 10px 0;
+        }
+
+        .zoom-btn {
+            padding: 5px 10px;
+            font-size: 14px;
+        }
+
+        input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .instructions {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            color: #1976d2;
+        }
+
+        .instructions h3 {
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            margin-left: 20px;
+        }
+
+        .instructions li {
+            margin: 5px 0;
+        }
+
+        .app-info {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            font-size: 0.8rem;
+            color: #999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Audiowerter</h1>
+
+        <!-- Upload pliku -->
+        <div class="section">
+            <h2>📁 Załaduj plik audio</h2>
+            <form id="uploadForm">
+                <div class="file-input-wrapper">
+                    <label for="audioFile" class="file-input-label">
+                        Wybierz plik audio
+                    </label>
+                    <input type="file" id="audioFile" accept=".mp3,.wav,.flac,.webm,.ogg" required>
+                    <div class="file-name" id="fileName">Nie wybrano pliku</div>
+                </div>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                    Wczytaj i edytuj plik
+                </button>
+            </form>
+        </div>
+
+        <!-- Nagrywanie -->
+        <div class="section">
+            <h2>🎤 Nagraj własne audio</h2>
+            
+            <div class="timer" id="timer">00:00</div>
+            
+            <canvas id="visualizer" class="visualizer"></canvas>
+            
+            <div class="recorder-controls">
+                <button id="startBtn" class="btn-primary">
+                    ▶️ Start
+                </button>
+                <button id="pauseBtn" class="btn-secondary" disabled>
+                    ⏸️ Pauza
+                </button>
+                <button id="stopBtn" class="btn-danger" disabled>
+                    ⏹️ Stop
+                </button>
+            </div>
+        </div>
+
+        <!-- Edytor audio -->
+        <div class="audio-editor" id="audioEditor">
+            <h2>✂️ Edytor audio</h2>
+            
+            <div class="instructions">
+                <h3>📝 Instrukcja:</h3>
+                <ul>
+                    <li>Przeciągnij uchwyty na suwaku, aby zaznaczyć fragment do przycięcia</li>
+                    <li>Kliknij "Odtwórz zaznaczenie" aby odsłuchać wybrany fragment</li>
+                    <li>Użyj przycisków zoom, aby dokładniej ustawić punkty cięcia</li>
+                    <li>Kliknij "Przytnij i zapisz" gdy będziesz zadowolony z wyboru</li>
+                </ul>
+            </div>
+
+            <div class="waveform-container">
+                <canvas id="waveform"></canvas>
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+
+            <div class="zoom-controls">
+                <button class="btn-secondary zoom-btn" id="zoomOut">🔍-</button>
+                <span>Zoom: <span id="zoomLevel">1.0x</span></span>
+                <button class="btn-secondary zoom-btn" id="zoomIn">🔍+</button>
+                <button class="btn-secondary zoom-btn" id="zoomReset">↺ Reset</button>
+            </div>
+
+            <div class="trim-controls">
+                <div class="trim-slider">
+                    <div class="slider-track" id="sliderTrack">
+                        <div class="slider-range" id="sliderRange"></div>
+                        <div class="slider-handle start" id="startHandle"></div>
+                        <div class="slider-handle end" id="endHandle"></div>
+                    </div>
+                    <div class="time-display">
+                        <span>Start: <span id="startTime">0:00</span></span>
+                        <span>Koniec: <span id="endTime">0:00</span></span>
+                        <span>Długość: <span id="duration">0:00</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="playback-controls">
+                <button class="btn-secondary" id="playOriginal">▶️ Odtwórz całość</button>
+                <button class="btn-success" id="playSelection">▶️ Odtwórz zaznaczenie</button>
+                <button class="btn-danger" id="stopPlayback">⏹️ Stop</button>
+            </div>
+
+            <div class="trim-controls">
+                <div style="flex: 1;">
+                    <label for="trimStart">Start (sekundy):</label>
+                    <input type="number" id="trimStart" min="0" step="0.1" value="0">
+                </div>
+                <div style="flex: 1;">
+                    <label for="trimEnd">Koniec (sekundy):</label>
+                    <input type="number" id="trimEnd" min="0" step="0.1">
+                </div>
+                <button class="btn-secondary" id="applyManualTrim">Zastosuj</button>
+            </div>
+
+            <form id="exportForm">
+                <label for="exportFormat">Format docelowy:</label>
+                <select id="exportFormat" required>
+                    <option value="mp3">MP3</option>
+                    <option value="wav">WAV</option>
+                    <option value="flac">FLAC</option>
+                    <option value="ogg">OGG</option>
+                </select>
+                
+                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 10px;">
+                    💾 Przytnij i zapisz
+                </button>
+            </form>
+            
+            <div id="exportResult"></div>
+        </div>
+    </div>
+
+    <div class="app-info" id="appInfo"></div>
+
+    <script src="renderer.js"></script>
+</body>
+</html>
