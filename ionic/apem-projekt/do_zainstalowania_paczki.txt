@@ -1,0 +1,10 @@
+npm install @capacitor/android
+npm install @capawesome/capacitor-file-picker
+npm install @capacitor/filesystem
+npm install @capacitor/directory
+npx cap sync
+npm install @breezystack/lamejs
+npm install react-range
+npm install capacitor-voice-recorder --legacy-peer-deps
+
+
