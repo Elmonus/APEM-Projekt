@@ -64,9 +64,14 @@ const App: React.FC = () => {
         }
 
         // wyczyść stare, dodaj nowy region
-        if (ws.regions) {
-          ws.regions.clear();
-          ws.regions.add({start: 0, end: dur, color: 'rgba(102,126,234,0.3)'});
+        const regionsPlugin = ws.plugins[0];
+        if (regionsPlugin) {
+          regionsPlugin.clearRegions();
+          regionsPlugin.addRegion({
+            start: 0, 
+            end: dur, 
+            color: 'rgba(102,126,234,0.3)'
+          });
         }
       });
 
@@ -88,9 +93,13 @@ const App: React.FC = () => {
     setFileName(f.name);
     const ws: any = wavesurferRef.current;
     ws.empty();
-    if (ws.regions) {
-      ws.regions.clear();
+    
+    // Wyczyść regiony
+    const regionsPlugin = ws.plugins[0];
+    if (regionsPlugin) {
+      regionsPlugin.clearRegions();
     }
+    
     ws.load(URL.createObjectURL(f));
     decodeAudioBufferFromBlob(f)
         .then(decoded => {
@@ -125,8 +134,34 @@ const App: React.FC = () => {
         
         // Załaduj nagranie do wavesurfer
         if (wavesurferRef.current) {
-          wavesurferRef.current.empty();
-          wavesurferRef.current.loadBlob(blob);
+          const ws = wavesurferRef.current;
+          ws.empty();
+          
+          // Wyczyść regiony przed załadowaniem
+          const regionsPlugin = ws.plugins[0];
+          if (regionsPlugin) {
+            regionsPlugin.clearRegions();
+          }
+          
+          // Ustaw callback dla ready event PRZED załadowaniem
+          ws.once('ready', () => {
+            const dur = ws.getDuration();
+            setDuration(dur);
+            setStartTime('0.00');
+            setEndTime(dur.toFixed(2));
+            setRangeValues([0, dur]);
+            
+            // Dodaj nowy region po załadowaniu
+            if (regionsPlugin) {
+              regionsPlugin.addRegion({
+                start: 0,
+                end: dur,
+                color: 'rgba(102,126,234,0.3)'
+              });
+            }
+          });
+          
+          ws.loadBlob(blob);
           
           // Dekoduj audio buffer
           try {
@@ -248,8 +283,20 @@ const App: React.FC = () => {
   const playRegion = () => {
     const s = parseFloat(startTime);
     const e = parseFloat(endTime);
-    if (!isNaN(s) && !isNaN(e) && s < e && e <= duration) {
-      wavesurferRef.current.play(s, e);
+    if (!isNaN(s) && !isNaN(e) && s < e && e <= duration && wavesurferRef.current) {
+      // Zatrzymaj jeśli coś gra
+      wavesurferRef.current.pause();
+      // Ustaw pozycję i odtwórz
+      wavesurferRef.current.setTime(s);
+      wavesurferRef.current.play();
+      
+      // Ustaw timeout do zatrzymania
+      const playDuration = (e - s) * 1000;
+      setTimeout(() => {
+        if (wavesurferRef.current && wavesurferRef.current.isPlaying()) {
+          wavesurferRef.current.pause();
+        }
+      }, playDuration);
     }
   };
 
