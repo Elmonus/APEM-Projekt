@@ -1,22 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
-// import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 import RegionsPlugin, { RegionsPluginOptions } from 'wavesurfer.js/dist/plugins/regions.js';
 import { getTrackBackground, Range } from 'react-range';
 import * as lamejs from '@breezystack/lamejs';
 import './App.css';
-import { saveAs } from 'file-saver'; // lub fs przez IPC
-
-
-
+import { saveAs } from 'file-saver';
 
 // Electron API
 const { ipcRenderer } = window.require('electron');
 
 const App: React.FC = () => {
-
-
-
   const waveformRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<any>(null);
   const [isWaveformReady, setIsWaveformReady] = useState(false);
@@ -26,31 +19,22 @@ const App: React.FC = () => {
   const [duration, setDuration] = useState(0);
   const [startTime, setStartTime] = useState('0.00');
   const [endTime, setEndTime] = useState('0.00');
-  const STEP = 0.01;
-  const MIN = 0;
-  const MAX = duration; // zaktualizuje się po załadowaniu pliku
-  const [rangeValues, setRangeValues] = useState([0.0, duration + 0.01]);
-  useEffect(() => {
-    setRangeValues([parseFloat(startTime), parseFloat(endTime)]);
-  }, [startTime, endTime]);
-
+  const [rangeValues, setRangeValues] = useState([0.0, 0.0]);
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // nagrywanie
   const [recording, setRecording] = useState(false);
+  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
+  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [recordingStream, setRecordingStream] = useState<MediaStream | null>(null);
 
-  const regionsPlugin = RegionsPlugin.create({
-    dragSelection: true,
-    regions: [
-      {
-        start: 0,
-        end: 5,
-        color: 'rgba(102,126,234,0.3)',
-      },
-    ],
-  } as RegionsPluginOptions);
+  const [volume, setVolume] = useState(1.0);
 
-// W useEffect lub useLayoutEffect
+  useEffect(() => {
+    setRangeValues([parseFloat(startTime), parseFloat(endTime)]);
+  }, [startTime, endTime]);
+
   useEffect(() => {
     if (waveformRef.current && !wavesurferRef.current) {
       const ws: any = WaveSurfer.create({
@@ -62,7 +46,6 @@ const App: React.FC = () => {
         plugins: [
           RegionsPlugin.create({
             dragSelection: true,
-            // regionColor: 'rgba(102,126,234,0.3)'
           })
         ]
       });
@@ -111,7 +94,7 @@ const App: React.FC = () => {
     ws.load(URL.createObjectURL(f));
     decodeAudioBufferFromBlob(f)
         .then(decoded => {
-          setAudioBuffer(decoded); // ← najważniejsze
+          setAudioBuffer(decoded);
         })
         .catch(err => {
           console.error("Błąd dekodowania pliku:", err);
@@ -124,6 +107,64 @@ const App: React.FC = () => {
     return await audioCtx.decodeAudioData(arrayBuffer);
   };
 
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream);
+      const chunks: Blob[] = [];
+
+      recorder.ondataavailable = e => {
+        if (e.data.size > 0) {
+          chunks.push(e.data);
+        }
+      };
+      
+      recorder.onstop = async () => {
+        const blob = new Blob(chunks, { type: 'audio/webm' });
+        setAudioChunks([]);
+        
+        // Załaduj nagranie do wavesurfer
+        if (wavesurferRef.current) {
+          wavesurferRef.current.empty();
+          wavesurferRef.current.loadBlob(blob);
+          
+          // Dekoduj audio buffer
+          try {
+            const decoded = await decodeAudioBufferFromBlob(blob);
+            setAudioBuffer(decoded);
+          } catch (err) {
+            console.error("Błąd dekodowania nagrania:", err);
+          }
+        }
+        
+        setFileName('Nagranie.webm');
+        setRecording(false);
+      };
+
+      recorder.start();
+      setMediaRecorder(recorder);
+      setRecordingStream(stream);
+      setRecording(true);
+    } catch (error) {
+      console.error('Błąd rozpoczęcia nagrywania:', error);
+      alert('Nie można uzyskać dostępu do mikrofonu');
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+      
+      // Zatrzymaj wszystkie ścieżki audio
+      if (recordingStream) {
+        recordingStream.getTracks().forEach(track => track.stop());
+        setRecordingStream(null);
+      }
+      
+      setMediaRecorder(null);
+    }
+  };
+
   const saveAsWav = async () => {
     if (!audioBuffer) return alert('Brak danych audio');
 
@@ -134,7 +175,7 @@ const App: React.FC = () => {
 
     const wavBuffer = createWavFile(data, sampleRate);
     const blob = new Blob([wavBuffer], { type: 'audio/wav' });
-    saveAs(blob, `fragment_${Date.now()}.wav`);
+    saveAs(blob, `audio_${Date.now()}.wav`);
   };
 
   const saveAsMp3 = async () => {
@@ -162,7 +203,7 @@ const App: React.FC = () => {
     if (endBuf.length > 0) mp3Data.push(endBuf);
 
     const blob = new Blob(mp3Data, { type: 'audio/mp3' });
-    saveAs(blob, `fragment_${Date.now()}.mp3`);
+    saveAs(blob, `audio_${Date.now()}.mp3`);
   };
 
   const createWavFile = (samples: Float32Array, sampleRate: number): ArrayBuffer => {
@@ -199,30 +240,6 @@ const App: React.FC = () => {
     return buffer;
   };
 
-  const [mediaRecorder, setMediaRecorder] = useState<MediaRecorder | null>(null);
-  const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
-
-  const startRecording = async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    const recorder = new MediaRecorder(stream);
-    const chunks: Blob[] = [];
-
-    recorder.ondataavailable = e => chunks.push(e.data);
-    recorder.onstop = () => {
-      const blob = new Blob(chunks, { type: 'audio/wav' });
-      setAudioChunks([]);
-      wavesurferRef.current.loadBlob(blob);
-    };
-
-    recorder.start();
-    setMediaRecorder(recorder);
-  };
-
-  const stopRecording = () => {
-    mediaRecorder?.stop();
-    setMediaRecorder(null);
-  };
-
   // funkcje odtwarzania
   const playAll = () => {
     wavesurferRef.current?.play();
@@ -240,12 +257,12 @@ const App: React.FC = () => {
     wavesurferRef.current?.pause();
   };
 
-  const [volume, setVolume] = useState(1.0);
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   return (
       <div className="app">
-        <header className="app-header"><h1>🎵 Audiowerter</h1></header>
+        <header className="app-header">
+          <h1>Audiowerter</h1>
+        </header>
+        
         <main className="app-content">
           <div className="section">
             <input
@@ -255,25 +272,14 @@ const App: React.FC = () => {
                 onChange={onFileChange}
                 style={{ display: 'none' }}
             />
-            {/*<input*/}
-            {/*    type="file"*/}
-            {/*    accept="audio/*"*/}
-            {/*    onChange={async (e) => {*/}
-            {/*      const file = e.target.files?.[0];*/}
-            {/*      if (file) {*/}
-            {/*        setFileName(file.name);*/}
-            {/*        await loadAudioBlob(file);*/}
-            {/*      }*/}
-            {/*    }}*/}
-            {/*/>*/}
             <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-              📂 Wybierz plik audio
+              Wybierz plik audio
             </button>
             <button
                 className={`btn ${recording ? 'btn-danger' : 'btn-primary'}`}
                 onClick={recording ? stopRecording : startRecording}
             >
-              {recording ? '⏹️ Zatrzymaj nagrywanie' : '🎙️ Nagraj audio'}
+              {recording ? 'Zatrzymaj nagrywanie' : 'Nagraj audio'}
             </button>
           </div>
 
@@ -287,7 +293,7 @@ const App: React.FC = () => {
           <div
               ref={waveformRef}
               className="waveform-container"
-              style={{ visibility: isWaveformReady ? 'visible' : 'hidden' }} // lub display: none
+              style={{ visibility: isWaveformReady ? 'visible' : 'hidden' }}
           />
 
           {isWaveformReady && (
@@ -351,63 +357,20 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="controls">
-                  <button className="btn" onClick={playAll}>▶️ Odtwórz</button>
-                  <button className="btn" onClick={playRegion}>🔂 Odtwórz zaznaczenie</button>
-                  <button className="btn" onClick={pause}>⏸️ Pauza</button>
+                  <button className="btn" onClick={playAll}>Odtwórz</button>
+                  <button className="btn" onClick={playRegion}>Odtwórz zaznaczenie</button>
+                  <button className="btn" onClick={pause}>Pauza</button>
                 </div>
 
                 <div className="export-section">
                   <h3>Eksportuj jako:</h3>
                   <div className="export-buttons">
                     <button className="btn btn-success" onClick={saveAsWav}>
-                      💾 WAV
+                      WAV
                     </button>
                     <button className="btn btn-success" onClick={saveAsMp3}>
-                      💾 MP3
+                      MP3
                     </button>
-                    {/*{currentFilePath && (*/}
-                    {/*    <>*/}
-                    {/*      <button*/}
-                    {/*          className="btn btn-success"*/}
-                    {/*          onClick={() =>*/}
-                    {/*              ipcRenderer*/}
-                    {/*                  .invoke('convert-audio', {*/}
-                    {/*                    inputPath: currentFilePath!,*/}
-                    {/*                    outputFormat: 'flac',*/}
-                    {/*                    trimStart: startTime,*/}
-                    {/*                    trimEnd: endTime*/}
-                    {/*                  })*/}
-                    {/*                  .then((res: { success: boolean; filePath?: string }) => {*/}
-                    {/*                    if (res.success && res.filePath) {*/}
-                    {/*                      alert(`Zapisano: ${res.filePath}`);*/}
-                    {/*                    }*/}
-                    {/*                  })*/}
-                    {/*          }*/}
-                    {/*      >*/}
-                    {/*        💾 FLAC (FFmpeg)*/}
-                    {/*      </button>*/}
-                    {/*      <button*/}
-                    {/*          className="btn btn-success"*/}
-                    {/*          onClick={() =>*/}
-                    {/*              ipcRenderer*/}
-                    {/*                  .invoke('convert-audio', {*/}
-                    {/*                    inputPath: currentFilePath!,*/}
-                    {/*                    outputFormat: 'ogg',*/}
-                    {/*                    trimStart: startTime,*/}
-                    {/*                    trimEnd: endTime*/}
-                    {/*                  })*/}
-                    {/*                  .then((res: { success: boolean; filePath?: string }) => {*/}
-                    {/*                    if (res.success && res.filePath) {*/}
-                    {/*                      alert(`Zapisano: ${res.filePath}`);*/}
-                    {/*                    }*/}
-                    {/*                  })*/}
-                    {/*          }*/}
-                    {/*      >*/}
-                    {/*        💾 OGG (FFmpeg)*/}
-                    {/*      </button>*/}
-
-                    {/*    </>*/}
-                    {/*)}*/}
                   </div>
                 </div>
               </>
