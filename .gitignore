@@ -29,3 +29,5 @@ yarn-error.log*
 
 # Optional eslint cache
 .eslintcache
+/electron_js/node_modules/
+/electron_py/node_modules/
