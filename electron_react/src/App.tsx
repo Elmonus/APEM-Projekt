@@ -7,7 +7,7 @@ import './App.css';
 import { saveAs } from 'file-saver';
 
 // Electron API
-const { ipcRenderer } = window.require('electron');
+const ipcRenderer = (window as any).electronAPI;
 
 const App: React.FC = () => {
   const waveformRef = useRef<HTMLDivElement>(null);
@@ -20,7 +20,7 @@ const App: React.FC = () => {
   const [startTime, setStartTime] = useState('0.00');
   const [endTime, setEndTime] = useState('0.00');
   const [rangeValues, setRangeValues] = useState([0.0, 0.0]);
-  
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // nagrywanie
@@ -34,6 +34,12 @@ const App: React.FC = () => {
   useEffect(() => {
     setRangeValues([parseFloat(startTime), parseFloat(endTime)]);
   }, [startTime, endTime]);
+
+  useEffect(() => {
+    window.addEventListener('error', (e) => {
+      console.error("BŁĄD:", e.error || e.message);
+    });
+  }, []);
 
   useEffect(() => {
     if (waveformRef.current && !wavesurferRef.current) {
@@ -64,14 +70,26 @@ const App: React.FC = () => {
         }
 
         // wyczyść stare, dodaj nowy region
-        const regionsPlugin = ws.plugins[0];
-        if (regionsPlugin) {
-          regionsPlugin.clearRegions();
-          regionsPlugin.addRegion({
-            start: 0, 
-            end: dur, 
-            color: 'rgba(102,126,234,0.3)'
-          });
+        // const regionsPlugin = ws.plugins[0];
+        // if (regionsPlugin) {
+        //   regionsPlugin.clearRegions();
+        //   regionsPlugin.addRegion({
+        //     start: 0,
+        //     end: dur,
+        //     color: 'rgba(102,126,234,0.3)'
+        //   });
+        // }
+        const regionsPlugin = ws.getActivePlugins().find(
+            (plugin: any) => plugin.constructor.name === 'RegionsPlugin'
+        );
+        if (regionsPlugin?.getRegions) {
+          const allRegions = regionsPlugin.getRegions();
+          Object.values(allRegions).forEach((region: any) => region.remove());
+          Object.values(allRegions).forEach((region: any) => region.addRegion({
+                start: 0,
+                end: dur,
+                color: 'rgba(102,126,234,0.3)'
+          }));
         }
       });
 
@@ -304,6 +322,7 @@ const App: React.FC = () => {
     wavesurferRef.current?.pause();
   };
 
+  try {
   return (
       <div className="app">
         <header className="app-header">
@@ -320,13 +339,13 @@ const App: React.FC = () => {
                 style={{ display: 'none' }}
             />
             <button className="btn btn-primary" onClick={() => fileInputRef.current?.click()}>
-              Wybierz plik audio
+              📁 Wybierz plik audio
             </button>
             <button
                 className={`btn ${recording ? 'btn-danger' : 'btn-primary'}`}
                 onClick={recording ? stopRecording : startRecording}
             >
-              {recording ? 'Zatrzymaj nagrywanie' : 'Nagraj audio'}
+              {recording ? 'Zatrzymaj nagrywanie' : '🎙 Nagraj audio'}
             </button>
           </div>
 
@@ -388,7 +407,7 @@ const App: React.FC = () => {
                 </div>
 
                 <div className="volume-control">
-                  <label>Głośność: {Math.round(volume * 100)}%</label>
+                  <label>🔈 Głośność: {Math.round(volume * 100)}%</label>
                   <input
                       type="range"
                       min="0"
@@ -413,10 +432,10 @@ const App: React.FC = () => {
                   <h3>Eksportuj jako:</h3>
                   <div className="export-buttons">
                     <button className="btn btn-success" onClick={saveAsWav}>
-                      WAV
+                      💾 WAV
                     </button>
                     <button className="btn btn-success" onClick={saveAsMp3}>
-                      MP3
+                      💾 MP3
                     </button>
                   </div>
                 </div>
@@ -425,6 +444,10 @@ const App: React.FC = () => {
         </main>
       </div>
   );
+  } catch (err) {
+    console.error("Rendering error:", err);
+    return <div>Błąd renderowania: {String(err)}</div>;
+  }
 };
 
 export default App;

@@ -1,14 +1,32 @@
 {
+  "main": "public/electron.js",
+  "homepage": "./",
   "name": "audiowerter-electron-react",
   "version": "1.0.0",
   "description": "Audiowerter z React i Electron",
-  "main": "main.js",
+  "author": "Kutnik, Walasek",
   "scripts": {
     "start": "concurrently \"npm run react-start\" \"wait-on http://localhost:3000 && electron .\"",
     "react-start": "cross-env BROWSER=none react-scripts start",
     "build": "react-scripts build",
     "electron": "electron .",
     "dist": "npm run build && electron-builder"
+  },
+  "build": {
+    "files": [
+      "!node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+      "!**/.*",
+      "!**/*.map",
+      "build/**/*",
+      "electron.js",
+      "public/electron.js",
+      "icon.png",
+      "src/**/*"
+    ],
+    "extraResources": [],
+    "directories": {
+      "buildResources": "public"
+    }
   },
   "dependencies": {
     "@breezystack/lamejs": "^1.2.7",
