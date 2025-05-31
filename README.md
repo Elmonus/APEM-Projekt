@@ -10,3 +10,6 @@ katalog: ionic/apem-projekt/
 
 # Wersja desktopowa
 katalog: electron_react
+
+(dodano dodatkowy branch do poprawy kodu,
+ aby móc stworzyć poprawnie działające exe)
